@@ -262,7 +262,6 @@ class EvalCallback():
             print("Get map done.")
             # shutil.rmtree(self.map_out_path)
             print()
-            print('yes')
 
 
 
