@@ -49,6 +49,11 @@ We utilize 1 NVIDIA GeForce RTX 4090D GPU for testing. For the **ITSDT-15K→ IR
 ```bash
 python vid_ITSDT_to_IRDST.py
 ```
+## 4. Visualization
+For the **ITSDT-15K→ IRDST**：
+```bash
+python vid_predict_ITSDT_to_IRDST.py
+```
 ## Citation
 If you find this project is useful for your research, please cite:
 
@@ -65,10 +70,6 @@ If you find this project is useful for your research, please cite:
 
 ```
 
-## 4. Visualization
-For the **ITSDT-15K→ IRDST**：
-```bash
-python vid_predict_ITSDT_to_IRDST.py
-```
+
 ## Acknowledgements
 This work is based on [SSTNet](https://github.com/UESTC-nnLab/SSTNet), [STDF-Pytoch](https://github.com/ryanxingql/stdf-pytorch), [MGANet](https://github.com/mengab/MGANet-DCC2020), and [MobileSAM](https://github.com/ChaoningZhang/MobileSAM). Thank them for sharing the codes.
