@@ -302,9 +302,9 @@ if __name__ == "__main__":
         target_train_lines   = f.readlines()
     with open(target_val_annotation_path, encoding='utf-8') as f:
         target_val_lines   = f.readlines()
-    source_num_train   = len(source_train_lines)  # 8982
-    target_num_train   = len(target_train_lines)  # 20398
-    target_num_val     = len(target_val_lines)  # 20258
+    source_num_train   = len(source_train_lines)  
+    target_num_train   = len(target_train_lines) 
+    target_num_val     = len(target_val_lines)  
 
     if local_rank == 0:
         show_config(
