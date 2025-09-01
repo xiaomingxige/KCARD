@@ -26,11 +26,6 @@ from mobile_sam import sam_model_registry
 3、训练好的权值文件保存在logs文件夹中，每个训练世代（Epoch）包含若干训练步长（Step），每个训练步长（Step）进行一次梯度下降。
 '''
 if __name__ == "__main__":
-    print('PID: ', os.getpid())
-    """
-    CUDA_VISIBLE_DEVICES=1 python  ITSDT_to_IRDST.py
-    CUDA_VISIBLE_DEVICES=1 nohup python -u  ITSDT_to_IRDST.py >  ITSDT_to_IRDST.out &
-    """
     ################### source data
     source_train_annotation_path = './coco_realtrain_ITSDT.txt'
     ################### target data
@@ -243,7 +238,7 @@ if __name__ == "__main__":
         model_dict.update(temp_dict)
         model.load_state_dict(model_dict)
 
-        sam_checkpoint = '/data/luodengyan/code/SAM/MobileSAM-master/weights/mobile_sam.pt'
+        sam_checkpoint = './mobile_sam.pt'
         sam_pretrained_dict = torch.load(sam_checkpoint, map_location = device)
         model.mobile_sam.load_state_dict(sam_pretrained_dict)
         #------------------------------------------------------#

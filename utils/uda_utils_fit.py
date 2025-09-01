@@ -40,10 +40,10 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, eval_callbac
         if not fp16:  # not fp16 = True
             target_outputs = model_train(source_images[:, :, -1, :, :], source_box, target_images)
 
-            # ###############检测损失
+            # ###############
             yololoss = yolo_loss(target_outputs, target_target)
 
-            # ###############总损失
+            # ############### 
             loss_value = yololoss
 
             loss_value.backward()
