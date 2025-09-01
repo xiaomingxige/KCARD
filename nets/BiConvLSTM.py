@@ -75,17 +75,15 @@ class BiConvLSTMCell(nn.Module):
 
     def forward(self, input_tensor, cur_state):
         h_cur, c_cur = cur_state
-        # print(input_tensor.shape, h_cur.shape, c_cur.shape)  # torch.Size([b, 64, 64, 64]) torch.Size([b, 64, 64, 64]) torch.Size([b, 64, 64, 64])
 
         combined = torch.cat([input_tensor, h_cur], dim=1)  # concatenate along channel axis
        
         combined = self.fuse_conv(combined)
         combined = self.dcn(combined, h_cur)
 
-        combined_conv = self.conv(combined)  # torch.Size([b, 256, 64, 64])
+        combined_conv = self.conv(combined)  
 
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
-        # print(cc_i.shape, cc_f.shape, cc_o.shape, cc_g.shape)  # torch.Size([b, 64, 64, 64]) torch.Size([b, 64, 64, 64]) torch.Size([b, 64, 64, 64]) torch.Size([b, 64, 64, 64])
 
         i = torch.sigmoid(cc_i)
         f = torch.sigmoid(cc_f)
@@ -143,7 +141,6 @@ class BiConvLSTM(nn.Module):
             output_inner = []
 
             hb, cb = hidden_state[layer_idx]
-            # print(hb.shape, cb.shape)  # torch.Size([2, 64, 64, 64]) torch.Size([2, 64, 64, 64])
             for t in range(seq_len):
                 hb, cb = self.cell_list[layer_idx](input_tensor=cur_layer_input[:, seq_len-t-1, :, :, :], cur_state=[hb, cb])
 
@@ -152,12 +149,10 @@ class BiConvLSTM(nn.Module):
             hf, cf = hidden_state[layer_idx]
             for t in range(seq_len):
                 hf, cf = self.cell_list[layer_idx](input_tensor=cur_layer_input[:, t, :, :, :], cur_state=[hf, cf])
-                # print('hf:',hf.shape)
                 forward_states.append(hf)
 
             for t in range(seq_len):
                 h = self.cell_list[layer_idx].conv_concat(torch.cat((forward_states[t], backward_states[seq_len - t - 1]), dim=1))
-                # print('h',h.shape)
                 output_inner.append(h)
 
             layer_output = torch.stack(output_inner, dim=1)
@@ -192,26 +187,3 @@ class BiConvLSTM(nn.Module):
             param = [param] * num_layers
         return param
     
-if __name__ == "__main__":
-    h = 64
-    w = 64
-    input_size = [h, w]
-    c = 64
-    
-    biconvlstm  = BiConvLSTM(input_size=(input_size[0], input_size[1]), input_dim=c, 
-                             hidden_dim=c, kernel_size=(3, 3), num_layers=2).cuda()
-
-    CNN_seq = []
-    x = torch.rand(2, c, h, w).cuda()
-    CNN_seq.append(x)
-    CNN_seq.append(x)
-    CNN_seq.append(x)
-    CNN_seq.append(x)
-    CNN_seq.append(x)
-    CNN_seq_out      = torch.stack(CNN_seq, dim=1)
-    # CNN_seq_feature_maps = biconvlstm(CNN_seq_out)
-
-
-    from thop import profile
-    flops, params = profile(biconvlstm, inputs=(CNN_seq_out, ))
-    print(flops/(10**9), params/(10**6))  # 86.8220928 1.134768

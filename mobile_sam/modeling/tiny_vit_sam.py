@@ -134,15 +134,12 @@ class PatchMerging(nn.Module):
         if x.ndim == 3:
             H, W = self.input_resolution
             B = len(x)
-            # (B, C, H, W)
             x = x.view(B, H, W, -1).permute(0, 3, 1, 2)
 
         x = self.conv1(x)
         x = self.act(x)
-        # print(x.shape)  # (B, 128, H//4, W//4)
 
         x = self.conv2(x)
-        # print(x.shape)  # (B, 128, H//8, W//8)
         x = self.act(x)
         x = self.conv3(x)
 
@@ -184,7 +181,6 @@ class ConvLayer(nn.Module):
                 x = checkpoint.checkpoint(blk, x)
             else:
                 x = blk(x)
-        # print(x.shape)  # torch.Size([1, 64, H//4, W//4])
 
 
         if self.downsample is not None:
@@ -440,7 +436,6 @@ class BasicLayer(nn.Module):
             self.downsample = None
 
     def forward(self, x):
-        # print('yes', x.shape)  
         for blk in self.blocks:
             if self.use_checkpoint:
                 x = checkpoint.checkpoint(blk, x)
@@ -609,26 +604,16 @@ class TinyViT(nn.Module):
     def forward_features(self, x):
         # x: (N, C, H, W)
         x = self.patch_embed(x)
-        # print(x.shape)  # torch.Size([1, 64, H//4, W//4])
 
         x = self.layers[0](x)
         start_i = 1
-        # print(x.shape)  # torch.Size([1, H//8 * W//8, 128])  # 这里的128表示通道维数，通过layers[0]从64变到了128 
-        # exit(1)
 
         for i in range(start_i, len(self.layers)):
             layer = self.layers[i]
             x = layer(x)
-            # print(x.shape)  # 
-            """
-            仅在layers[1]进行了下采样。尽管layers[2]也有PatchMerging层，但是其中的步长为1，并未进行实质性的下采样
-            torch.Size([1, 1024, 160])
-            torch.Size([1, 1024, 320])
-            torch.Size([1, 1024, 320])
-            """
+
 
         B,_,C=x.size()
-        # print('yes', x.shape)
 
         # x = x.view(B, 64, 64, C)
         x = x.view(B, self.img_size//16, self.img_size//16, C)

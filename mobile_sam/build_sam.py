@@ -47,7 +47,6 @@ def build_sam_vit_b(checkpoint=None):
 def build_sam_vit_t(checkpoint=None):
     prompt_embed_dim = 256
     # image_size = 1024
-    # image_size = 544
     image_size = 512
     vit_patch_size = 16
     image_embedding_size = image_size // vit_patch_size

@@ -11,8 +11,6 @@ from .BiConvLSTM import BiConvLSTM
 from nets.ops.dcn.deform_conv import ModulatedDeformConv
 
 
-# from darknet import BaseConv, CSPDarknet, CSPLayer, DWConv, get_activation
-# from BiConvLSTM import BiConvLSTM
 
 
 
@@ -140,21 +138,18 @@ class YOLOXHead(nn.Module):
             )
 
     def forward(self, inputs):   # B, C, H, W
-        # outputs = []
         for k, x in enumerate(inputs):
             x = self.stems[k](x)
 
             cls_feat    = self.cls_convs[k](x)
-            cls_output  = self.cls_preds[k](cls_feat)  # cls_output: B, num_classes, H, W
+            cls_output  = self.cls_preds[k](cls_feat)  
 
             reg_feat    = self.reg_convs[k](x)
-            reg_output  = self.reg_preds[k](reg_feat)  # reg_output: B, 4, H, W
+            reg_output  = self.reg_preds[k](reg_feat)  
 
-            obj_output  = self.obj_preds[k](reg_feat)  # cls_output: B, 1, H, W
+            obj_output  = self.obj_preds[k](reg_feat)  
 
             output      = torch.cat([reg_output, obj_output, cls_output], 1)
-        #     outputs.append(output)
-        # return outputs
         return output
 
 
@@ -271,9 +266,7 @@ class Network(nn.Module):
         self.head_nf = 128
         self.mobile_sam = mobile_sam
 
-        # fea_ext_nf = 64
         fea_ext_out_nc = 64
-        # self.fea_ext = Feature_Extractor(in_nc=3, nf=fea_ext_nf, out_nc=fea_ext_out_nc, act=act) 
         self.backbone = Feature_Extractor(0.33, 0.50) 
         self.fe_conv = BaseConv(128, fea_ext_out_nc, 3, 1, act=act)
         #----------------------------------------------------------#
@@ -288,7 +281,6 @@ class Network(nn.Module):
         self.concat_conv = nn.Sequential(
             BaseConv(fea_ext_out_nc*5, fea_ext_out_nc, 3, 1, act=act),
             Channel_Attention(fea_ext_out_nc, ratio=8),
-            # BaseConv(fea_ext_out_nc, self.head_nf, 3, 1, act=act),
             BaseConv(fea_ext_out_nc, fea_ext_out_nc, 3, 1, act=act),
         )
         self.conv_fuse = nn.Sequential(
@@ -325,18 +317,14 @@ class Network(nn.Module):
         b, c, t, h, w = target_images.shape
         
         source_image_embedding = self.mobile_sam.image_encoder(source_image)
-        # print(source_image_embedding.shape)  # torch.Size([b, 256, h//16, w//16]) 
         # source_image_pe = self.mobile_sam.prompt_encoder.get_dense_pe()
-        # print(source_image_pe.shape)  # torch.Size([1, 256, h//16, w//16])
 
 
         target_image_embedding = self.mobile_sam.image_encoder(target_images[:, :, -1, :, :])
         target_image_pe = self.mobile_sam.prompt_encoder.get_dense_pe()  
-        # print(target_image_embedding.shape, target_image_pe.shape)  # torch.Size([b, 256, h//16, w//16]) torch.Size([1, 256, h//16, w//16])
         
         cat_image_embedding = torch.cat((source_image_embedding, target_image_embedding), dim=1)
         cat_image_embedding = self.fuse_source_target(cat_image_embedding)
-        # print(self.align(x, y).shape)
 
 
         cat_source_sparse_embeddings = []
@@ -347,17 +335,16 @@ class Network(nn.Module):
                 masks=None,
             )
 
-            # print(source_sparse_embeddings.shape, dense_embeddings.shape)  # torch.Size([框数, 2, 256]) torch.Size([框数, 256, h//16, w//16])
-            source_sparse_embeddings = source_sparse_embeddings.view(-1, 256)  # torch.Size([框数*2, 256])
+            source_sparse_embeddings = source_sparse_embeddings.view(-1, 256)  
             cat_source_sparse_embeddings.append(source_sparse_embeddings)
-        cat_source_sparse_embeddings = torch.stack(cat_source_sparse_embeddings, dim=0)  # torch.Size([b, 框数*2, 256])
-        cat_source_sparse_embeddings = cat_source_sparse_embeddings.permute(0, 2, 1)  # torch.Size([b, 256, 框数*2])
-        cat_source_sparse_embeddings = cat_source_sparse_embeddings.unsqueeze(-1)  # torch.Size([b, 256, 框数*2, 1])
-        cat_source_sparse_embeddings = cat_source_sparse_embeddings.repeat(1, 1, 1, cat_source_sparse_embeddings.shape[2])  # torch.Size([b, 256, 框数*2, 框数*2])
+        cat_source_sparse_embeddings = torch.stack(cat_source_sparse_embeddings, dim=0) 
+        cat_source_sparse_embeddings = cat_source_sparse_embeddings.permute(0, 2, 1) 
+        cat_source_sparse_embeddings = cat_source_sparse_embeddings.unsqueeze(-1)  
+        cat_source_sparse_embeddings = cat_source_sparse_embeddings.repeat(1, 1, 1, cat_source_sparse_embeddings.shape[2]) 
         
-        cat_target_sparse_embeddings = self.align_conv_source_target(self.align_source_target(cat_image_embedding, cat_source_sparse_embeddings))  # torch.Size([b, 256, 框数*2, 框数*2])
-        cat_target_sparse_embeddings = torch.mean(cat_target_sparse_embeddings, dim=-1).permute(0, 2, 1)  # torch.Size([b, 框数*2, 256])
-        cat_target_sparse_embeddings = cat_target_sparse_embeddings.view(b, -1, 2, 256)  # torch.Size([b, 框数, 2, 256])
+        cat_target_sparse_embeddings = self.align_conv_source_target(self.align_source_target(cat_image_embedding, cat_source_sparse_embeddings))  
+        cat_target_sparse_embeddings = torch.mean(cat_target_sparse_embeddings, dim=-1).permute(0, 2, 1)  
+        cat_target_sparse_embeddings = cat_target_sparse_embeddings.view(b, -1, 2, 256) 
 
 
         cat_mask_predictions = []
@@ -365,18 +352,16 @@ class Network(nn.Module):
             sparse_embeddings = cat_target_sparse_embeddings[bidx, ...]  
 
             mask_predictions, iou_preds = self.mobile_sam.mask_decoder(
-                image_embeddings=target_image_embedding[bidx:bidx+1, ...],  # (1, 256, h//16, w//16)
-                image_pe=target_image_pe,  # torch.Size([1, 256, 64, 64])
-                sparse_prompt_embeddings=sparse_embeddings,  # (框数, 2, 256)
-                dense_prompt_embeddings=dense_embeddings,  # (框数, 256, h//16, w//16)
+                image_embeddings=target_image_embedding[bidx:bidx+1, ...], 
+                image_pe=target_image_pe,  
+                sparse_prompt_embeddings=sparse_embeddings, 
+                dense_prompt_embeddings=dense_embeddings,  
                 multimask_output=False,
             )  
-            # print(mask_predictions.shape, iou_preds.shape)  # torch.Size([框数, 1, h//4, w//4]), torch.Size([框数, 1])
-            # exit(1)
 
             cat_mask_predictions.append(mask_predictions)
         
-        cat_mask_predictions = torch.stack(cat_mask_predictions, dim=0)  # torch.Size([b, 框数, 1, h//4, w//4])
+        cat_mask_predictions = torch.stack(cat_mask_predictions, dim=0)  
         _, box_num, _, _, _ = cat_mask_predictions.shape
         
 
@@ -390,7 +375,6 @@ class Network(nn.Module):
         
         lstm_input      = torch.stack(feat_list, dim=1)
         lstm_output = self.lstm(lstm_input)  
-        # print(lstm_output.shape)  # torch.Size([4, 5, 64, 64, 64])
 
 
         concat_input = torch.cat([lstm_output[:, i, :, :, :] for i in range(t)], dim=1)
@@ -400,10 +384,9 @@ class Network(nn.Module):
 
 
 
-        ####################################融合
+        #################################### fusion
         for i in range(box_num):
-            feat = self.mask_conv(cat_mask_predictions[:, i, :, :, :])  # torch.Size([4, 128, 64, 64]) torch.Size([4, 1, 128, 128])
-            # print(out_feat.shape, feat.shape)  # torch.Size([4, 128, 64, 64]) torch.Size([4, 128, 64, 64])
+            feat = self.mask_conv(cat_mask_predictions[:, i, :, :, :])  
             
             feat = torch.cat((out_feat, feat), dim=1)
             feat = self.final_conv(feat)
@@ -418,38 +401,3 @@ class Network(nn.Module):
         for _ in range(num_of_layer):
             layers.append(block())
         return nn.Sequential(*layers)
-
-    
-if __name__ == "__main__":
-    
-    from yolo_training import YOLOLoss
-    net = Network(num_classes=1, num_frame=5).cuda(0)
-
-
-    bs = 2
-    target_images = torch.randn(bs, 3, 5, 512, 512).cuda(0) 
-    # out = net(a) 
-
-
-    source_image = torch.rand(bs, 3, 512, 512).cuda(0)
-    raw_source_box = torch.rand(bs, 1, 4).cuda(0)
-
-    from thop import profile
-    flops, params = profile(net, inputs=(source_image, raw_source_box, target_images, ))
-    print(flops/(10**9), params/(10**6))  
-
-
-
-
-
-    # for item in out:
-    #     print(item.size())
-        
-    # yolo_loss    = YOLOLoss(num_classes=1, fp16=False, strides=[16])
-
-    # target = torch.randn([bs, 1, 5]).cuda()
-    # target = nn.Softmax()(target)
-    # target = [item for item in target]
-
-    # loss = yolo_loss(out, target)
-    # print(loss)
