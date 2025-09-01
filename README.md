@@ -29,7 +29,7 @@ python simple_check.py
 > The DCNv2 source files here is different from the [open-sourced version](https://github.com/chengdazhi/Deformable-Convolution-V2-PyTorch) due to incompatibility. [[issue]](https://github.com/open-mmlab/mmediting/issues/84#issuecomment-644974315)
 
 ### 1.3. Datasets
-Our experiments are conducted on three datasets: **DAUB**, **IRDST**, and **ITSDT-15K**. Six domain adaptation experiments are performed:  **IRDST$\rightarrow$ DAUB**, **ITSDT-15K$\rightarrow$ DAUB**, **DAUB$\rightarrow$ IRDST**, **ITSDT-15K$\rightarrow$ IRDST**, **DAUB$\rightarrow$ ITSDT-15K**, and **IRDST$\rightarrow$ ITSDT-15K**. 
+Our experiments are conducted on three datasets: **DAUB**, **IRDST**, and **ITSDT-15K**. Six domain adaptation experiments are performed:  **IRDST→ DAUB**, **ITSDT-15K→ DAUB**, **DAUB→ IRDST**, **ITSDT-15K→ IRDST**, **DAUB→ ITSDT-15K**, and **IRDST→ ITSDT-15K**. 
 We would like to thank [SSTNet](https://github.com/UESTC-nnLab/SSTNet) and [Tridos](https://github.com/UESTC-nnLab/Tridos) for providing the datasets download links:
 - **DAUB**: [Download Link](https://pan.baidu.com/s/1nNTvjgDaEAQU7tqQjPZGrw?pwd=saew) (Extraction Code: saew)
 - **IRDST**: [Download Link](https://pan.baidu.com/s/1igjIT30uqfCKjLbmsMfoFw?pwd=rrnr) (Extraction Code: rrnr)
@@ -37,7 +37,7 @@ We would like to thank [SSTNet](https://github.com/UESTC-nnLab/SSTNet) and [Trid
 
 We also provide the 1% target training samples used in the paper within this repository.
 ## 2. Train
-Taking **ITSDT-15K$\rightarrow$ IRDST** as an example, you can use the following command:
+Taking **ITSDT-15K→ IRDST** as an example, you can use the following command:
 ```bash
 CUDA_VISIBLE_DEVICES=0 nohup python -u  ITSDT_to_IRDST.py >  ITSDT_to_IRDST.out &
 ```
@@ -45,7 +45,7 @@ CUDA_VISIBLE_DEVICES=0 nohup python -u  ITSDT_to_IRDST.py >  ITSDT_to_IRDST.out 
 
 For other transfer scenarios, you can proceed in a similar manner after modifying the corresponding file paths.
 ## 3. Test
-We utilize 1 NVIDIA GeForce RTX 4090D GPU for testing. For the **ITSDT-15K$\rightarrow$ IRDST**：
+We utilize 1 NVIDIA GeForce RTX 4090D GPU for testing. For the **ITSDT-15K→ IRDST**：
 ```bash
 python vid_ITSDT_to_IRDST.py
 ```
@@ -66,7 +66,7 @@ If you find this project is useful for your research, please cite:
 ```
 
 ## 4. Visualization
-For the **ITSDT-15K$\rightarrow$ IRDST**：
+For the **ITSDT-15K→ IRDST**：
 ```bash
 python vid_predict_ITSDT_to_IRDST.py
 ```
