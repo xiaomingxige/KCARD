@@ -279,7 +279,7 @@ if __name__ == "__main__":
         from utils.dataloader_for_DAUB import  source_seqDataset, source_dataset_collate
         from torch.utils.data import DataLoader
         input_shape = [512, 512]
-        source_train_annotation_path = '/home/luodengyan/tmp/master-红外目标检测/视频/数据集/ITSDT/my_coco_realtrain_ITSDT.txt'
+        source_train_annotation_path = './coco_realtrain_ITSDT.txt'
         source_train_dataset = source_seqDataset(source_train_annotation_path, input_shape[0], 5, 'train', length=1)
         shuffle = True
         source_DataLoader = iter(DataLoader(source_train_dataset, shuffle=shuffle, batch_size=1, num_workers=1, pin_memory=True,

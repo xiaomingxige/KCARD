@@ -27,7 +27,7 @@ input_shape = [512, 512]
 cocoGt_path         = '/home/datasts/json/IRDST_instances_test2017.json'
 dataset_img_path    = '/home/datasts/IRDST/'
 temp_save_path      = 'map_out/coco_eval_IRDST'
-source_train_annotation_path = '/home/datasts/ITSDT/my_coco_realtrain_ITSDT.txt'
+source_train_annotation_path = './coco_realtrain_ITSDT.txt'
 
 save_file_name = 'ITSDT_to_IRDST'
 
@@ -100,7 +100,7 @@ class MAP_vid(object):
     #   生成模型
     #---------------------------------------------------#
     def generate(self, onnx=False):
-        from mobile_sam import sam_model_registry, SamPredictor
+        from mobile_sam import sam_model_registry
         sam_checkpoint = None
         model_type = "vit_t"
         mobile_sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
