@@ -14,12 +14,10 @@ from nets.yolo_training import (ModelEMA, YOLOLoss, get_lr_scheduler, set_optimi
 from utils.callbacks import EvalCallback, LossHistory
 from utils.dataloader_for_DAUB import target_seqDataset, target_dataset_collate, source_seqDataset, source_dataset_collate
 from utils.utils import get_classes, show_config
-# from utils.utils_fit import fit_one_epoch
 from utils.uda_utils_fit import fit_one_epoch
 
 
-from mobile_sam import sam_model_registry, SamPredictor
-from mobile_sam.utils.transforms import ResizeLongestSide
+from mobile_sam import sam_model_registry
 '''
 训练自己的目标检测模型一定需要注意以下几点：
 1、训练前仔细检查自己的格式是否满足要求，该库要求数据集格式为VOC格式，需要准备好的内容有输入图片和标签
@@ -33,17 +31,15 @@ if __name__ == "__main__":
     CUDA_VISIBLE_DEVICES=1 python  ITSDT_to_IRDST.py
     CUDA_VISIBLE_DEVICES=1 nohup python -u  ITSDT_to_IRDST.py >  ITSDT_to_IRDST.out &
     """
-    ###################源域数据, 利用标签
-    source_train_annotation_path = '/home/luodengyan/tmp/master-红外目标检测/视频/数据集/ITSDT/my_coco_realtrain_ITSDT.txt'
-    ###################目标数据, 不利用标签
-    target_train_annotation_path = '/data/luodengyan/code/我的红外/视频/领域自适应_少量样本/IRDST/百分之一1帧_train_IRDST.txt'
-    target_val_annotation_path = '/home/luodengyan/tmp/master-红外目标检测/视频/数据集/IRDST_csj/my_coco_val_IRDST.txt'
+    ################### source data
+    source_train_annotation_path = './my_coco_realtrain_ITSDT.txt'
+    ################### target data
+    target_train_annotation_path = './百分之一1帧_train_IRDST.txt'
+    target_val_annotation_path = './my_coco_val_IRDST.txt'
 
 
 
     model_path        = './model_data/pre_trained.pth'
-    # model_path        = ''
-
 
 
     print('source_train_annotation_path: ', source_train_annotation_path)
@@ -210,7 +206,7 @@ if __name__ == "__main__":
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)  # 新加
+    torch.cuda.manual_seed(seed)  
     torch.cuda.manual_seed_all(seed)
     # torch.backends.cudnn.deterministic = True # speed up
     torch.backends.cudnn.benchmark = False  # if reproduce
@@ -226,22 +222,6 @@ if __name__ == "__main__":
 
     model = Network(num_classes=1, num_frame=5, mobile_sam=mobile_sam)
     weights_init(model)
-
-
-
-    # bs = 2
-    # target_images = torch.randn(bs, 3, 5, 512, 512).cuda()  
-    # # a = torch.randn(bs, 3, 5, 544, 544).cuda(1) 
-    # # out = net(a) 
-
-    # source_image = torch.rand(bs, 3, 512, 512).cuda()
-    # raw_source_box = torch.rand(bs, 1, 4).cuda()
-
-    # model = model.cuda()
-    # from thop import profile
-    # flops, params = profile(model, inputs=(source_image, raw_source_box, target_images, ))
-    # print(flops/(10**9), params/(10**6))    # 155.367911296 19.99545
-    # exit(1)
 
 
 
@@ -338,9 +318,8 @@ if __name__ == "__main__":
         wanted_step = 5e4 if optimizer_type == "sgd" else 1.5e4
 
 
-        # used_num_train = min(source_num_train, target_num_train)
         used_num_train = target_num_train
-        total_step  = used_num_train // (Unfreeze_batch_size / 2) * UnFreeze_Epoch  # /2的意思是源域和目标域的实际batch_size大小
+        total_step  = used_num_train // (Unfreeze_batch_size / 2) * UnFreeze_Epoch  
         if total_step <= wanted_step:
             if used_num_train // Unfreeze_batch_size == 0:
                 raise ValueError('数据集过小，无法进行训练，请扩充数据集。')
@@ -387,10 +366,6 @@ if __name__ == "__main__":
         }[optimizer_type]
         optimizer.add_param_group({"params": pg2})
         optimizer.add_param_group({"params": pg0})
-
-
-        # optimizer = optim.Adam(model.parameters(), lr=0.0001)
-        # print('yes')
 
         
         #---------------------------------------#
@@ -442,17 +417,6 @@ if __name__ == "__main__":
         #   开始模型训练
         #---------------------------------------#
         for epoch in range(Init_Epoch, UnFreeze_Epoch):     
-            for name, param in mobile_sam.named_parameters():
-                if name == 'image_encoder.patch_embed.seq.0.c.weight':
-                    print(param.data)
-                    """
-                        [[ 2.5270e-02,  9.1383e-02,  1.5176e-01],
-                        [ 9.8957e-02,  2.3882e-01, -2.4952e-01],
-                        [ 2.7389e-02,  1.4298e-01, -5.4490e-01]]]], device='cuda:0',
-                    """
-                    print(epoch, name)  # image_encoder.patch_embed.seq.0.c.weight
-
-
             source_gen.dataset.epoch_now       = epoch
             target_gen.dataset.epoch_now       = epoch
             target_gen_val.dataset.epoch_now   = epoch
