@@ -24,10 +24,10 @@ from utils.callbacks import get_history_imgs
 map_mode            = 0
 input_shape = [512, 512]
 
-cocoGt_path         = '/home/luodengyan/tmp/master-红外目标检测/视频/数据集/json/IRDST_instances_test2017.json'
-dataset_img_path    = '/home/luodengyan/tmp/master-红外目标检测/视频/数据集/IRDST_csj/'
+cocoGt_path         = '/home/datasts/json/IRDST_instances_test2017.json'
+dataset_img_path    = '/home/datasts/IRDST/'
 temp_save_path      = 'map_out/coco_eval_IRDST'
-source_train_annotation_path = '/home/luodengyan/tmp/master-红外目标检测/视频/数据集/ITSDT/my_coco_realtrain_ITSDT.txt'
+source_train_annotation_path = '/home/datasts/ITSDT/my_coco_realtrain_ITSDT.txt'
 
 save_file_name = 'ITSDT_to_IRDST'
 
@@ -42,14 +42,7 @@ class MAP_vid(object):
         #   验证集损失较低不代表mAP较高，仅代表该权值在验证集上泛化性能较好。
         #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
         #--------------------------------------------------------------------------#
-        # "model_path"        : '/data/luodengyan/code/我的红外/视频/3/test18_to_IRDST/logs_ITSDT_to_IRDST/2025_01_11_23_27_13/ep050-loss2.673-val_loss0.000.pth',  # 0.7043 Precision: 0.8072, Recall: 0.8802, F1: 0.8421
-        "model_path"        : '/data/luodengyan/code/我的红外/视频/3/test18_to_IRDST/logs_ITSDT_to_IRDST/2025_01_11_23_27_13/ep040-loss3.030-val_loss0.000.pth',  # 0.7639 Precision: 0.8470, Recall: 0.9110, F1: 0.8778
-        # "model_path"        : '/data/luodengyan/code/我的红外/视频/3/test18_to_IRDST/logs_ITSDT_to_IRDST/2025_01_11_23_27_13/ep030-loss3.362-val_loss0.000.pth',  # 0.6978 Precision: 0.8087, Recall: 0.8780, F1: 0.8419
-        # "model_path"        : '/data/luodengyan/code/我的红外/视频/3/test18_to_IRDST/logs_ITSDT_to_IRDST/2025_01_11_23_27_13/ep060-loss2.209-val_loss0.000.pth',  # 0.7565 Precision: 0.8563, Recall: 0.8980, F1: 0.8767
-        # "model_path"        : '/data/luodengyan/code/我的红外/视频/3/test18_to_IRDST/logs_ITSDT_to_IRDST/2025_01_11_23_27_13/ep070-loss1.886-val_loss0.000.pth',  # 0.7516 Precision: 0.8598, Recall: 0.8889, F1: 0.8741
-        # "model_path"        : '/data/luodengyan/code/我的红外/视频/3/test18_to_IRDST/logs_ITSDT_to_IRDST/2025_01_11_23_27_13/ep080-loss1.722-val_loss0.000.pth',  # 0.7581 Precision: 0.8581, Recall: 0.8945, F1: 0.8759
-        # "model_path"        : '/data/luodengyan/code/我的红外/视频/3/test18_to_IRDST/logs_ITSDT_to_IRDST/2025_01_11_23_27_13/ep090-loss1.608-val_loss0.000.pth', 
-        # "model_path"        : '/data/luodengyan/code/我的红外/视频/3/test18_to_IRDST/logs_ITSDT_to_IRDST/2025_01_11_23_27_13/ep100-loss1.571-val_loss0.000.pth',  # 0.7475 Precision: 0.8470, Recall: 0.8943, F1: 0.8700
+        "model_path"        : '', 
 
 
         "classes_path"      : 'model_data/classes.txt',
@@ -189,7 +182,7 @@ if __name__ == "__main__":
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)  # 新加
+    torch.cuda.manual_seed(seed)  
     torch.cuda.manual_seed_all(seed)
     # torch.backends.cudnn.deterministic = True # speed up
     torch.backends.cudnn.benchmark = False  # if reproduce
@@ -200,12 +193,7 @@ if __name__ == "__main__":
     start_time = time.time()
     print('cost of time:{:.2f}s'.format(time.time() - start_time))
 
-    """
-    CUDA_VISIBLE_DEVICES=0 python vid_ITSDT_to_IRDST.py 
-    
 
-    CUDA_VISIBLE_DEVICES=1 nohup python -u vid_ITSDT_to_IRDST.py > vid_ITSDT_to_IRDST.out & 
-    """
     print('PID:', os.getpid())
     if not os.path.exists(temp_save_path):
         os.makedirs(temp_save_path)
@@ -234,7 +222,7 @@ if __name__ == "__main__":
                 souce_batch = next(source_DataLoader)
                 source_images, _, source_box = souce_batch[0], souce_batch[1], souce_batch[2]
 
-                image_path = os.path.join(dataset_img_path, cocoGt.loadImgs(image_id)[0]['file_name'])  # cocoGt.loadImgs(image_id)如：[{'height': 256, 'width': 256, 'id': 1, 'file_name': 'images/test/data6/0.bmp'}]
+                image_path = os.path.join(dataset_img_path, cocoGt.loadImgs(image_id)[0]['file_name'])  
                 images = get_history_imgs(image_path)
                 images = [Image.open(item) for item in images]
 
@@ -266,25 +254,3 @@ if __name__ == "__main__":
         print("Precision: %.4f, Recall: %.4f, F1: %.4f" %(np.mean(precision_50[:int(recall_50*100)]), recall_50, 2*recall_50*np.mean(precision_50[:int(recall_50*100)])/( recall_50+np.mean(precision_50[:int(recall_50*100)]))))
         print("Get map done.")
         # print(yolo.model_path)
-        
-
-        
-        # 画图
-        import matplotlib.pyplot as plt
-        plt.figure(1) 
-        plt.title('PR Curve')# give plot a title
-        plt.xlabel('Recall')# make axis labels
-        plt.ylabel('Precision')
-        
-        x_axis = plt.xlim(0, 100)
-        y_axis = plt.ylim(0, 1.05)
-        plt.figure(1)
-        plt.plot(precision_50)
-        plt.show()
-        plt.savefig('p-r.png')
-
-
-        np.savetxt(f'./ours_{save_file_name}.txt', precision_50, fmt='%s', newline=' ')  # 使用np.savetxt函数将数组保存为txt文件，数据格式为字符串（并不影响读取）
-    
-    print('cost of time:{:.2f}s'.format(time.time() - start_time))
-    
