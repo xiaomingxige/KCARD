@@ -41,7 +41,6 @@ Taking **ITSDT-15K→ IRDST** as an example, you can use the following command:
 ```bash
 CUDA_VISIBLE_DEVICES=0 nohup python -u  ITSDT_to_IRDST.py >  ITSDT_to_IRDST.out &
 ```
-> Please modify the corresponding file path in train.py before training.
 
 For other transfer scenarios, you can proceed in a similar manner after modifying the corresponding file paths.
 ## 3. Test
