@@ -34,7 +34,7 @@ if __name__ == "__main__":
     ################### source data
     source_train_annotation_path = './my_coco_realtrain_ITSDT.txt'
     ################### target data
-    target_train_annotation_path = '.1percent_train_IRDST.txt'
+    target_train_annotation_path = './1percent_train_IRDST.txt'
     target_val_annotation_path = './my_coco_val_IRDST.txt'
 
 
