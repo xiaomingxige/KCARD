@@ -26,7 +26,7 @@ class Pred_vid(object):
         #   验证集损失较低不代表mAP较高，仅代表该权值在验证集上泛化性能较好。
         #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
         #--------------------------------------------------------------------------#
-        "model_path"        : '/data/luodengyan/code/我的红外/视频/3/test18_to_IRDST/logs_ITSDT_to_IRDST/2025_01_11_23_27_13/ep040-loss3.030-val_loss0.000.pth',  # 0.7639 Precision: 0.8470, Recall: 0.9110, F1: 0.8778
+        "model_path"        : '', 
         
 
         
@@ -93,7 +93,7 @@ class Pred_vid(object):
     #   生成模型
     #---------------------------------------------------#
     def generate(self, onnx=False):
-        from mobile_sam import sam_model_registry, SamPredictor
+        from mobile_sam import sam_model_registry
         sam_checkpoint = None
         model_type = "vit_t"
         mobile_sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
@@ -137,7 +137,6 @@ class Pred_vid(object):
         #   添加上batch_size维度
         #---------------------------------------------------------#
         image_data = [np.transpose(preprocess_input(np.array(image, dtype='float32')), (2, 0, 1)) for image in image_data]
-        # (3, 640, 640) -> (3, 16, 640, 640)
         image_data = np.stack(image_data, axis=1)
         
         image_data  = np.expand_dims(image_data, 0)
@@ -216,8 +215,6 @@ class Pred_vid(object):
             score           = top_conf[i]
 
 
-            # 真实:   
-            print(box)  # 
             top, left, bottom, right = box
 
 
@@ -231,7 +228,6 @@ class Pred_vid(object):
             # label_size = draw.textsize(label, font)
             label_size = draw.textbbox((125, 20), label, font)
             label = label.encode('utf-8')
-            # print(label, top, left, bottom, right)
             
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
@@ -252,18 +248,7 @@ class Pred_vid(object):
 
 
 if __name__ == "__main__":
-    """
-    python vid_predict.py
-
-    需要修改：
-    source_train_annotation_path
-    "model_path"
-    img
-
-    """
     yolo = Pred_vid()
-    # yolo = Pred_vid(confidence=0.001, nms_iou=0.65)
-    # yolo = Pred_vid(confidence=0.001)
     #----------------------------------------------------------------------------------------------------------#
     #   mode用于指定测试的模式：
     #   'predict'           表示单张图片预测，如果想对预测过程进行修改，如保存图片，截取对象等，可以先看下方详细的注释
@@ -307,7 +292,7 @@ if __name__ == "__main__":
 
         for i in range(92, 93):
             img_id = str(i)
-            img = f'/home/luodengyan/tmp/master-红外目标检测/视频/数据集/IRDST_csj/images/18/{img_id}.bmp'
+            img = f'/home/datasets/IRDST/images/18/{img_id}.bmp'
 
 
 
