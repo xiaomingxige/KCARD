@@ -206,10 +206,7 @@ class EvalCallback():
 
                 
                 line        = annotation_line.split()
-                '''
-                    # 不同视频的图片序号会重复， 视频号-图片序号作为id 
-                '''
-                image_id    = line[0].split('/')[-2] + '-' + line[0].split('/')[-1][:-4] # 如data6-0
+                image_id    = line[0].split('/')[-2] + '-' + line[0].split('/')[-1][:-4] 
   
                 #------------------------------#
                 #   读取图像
@@ -270,12 +267,12 @@ class EvalCallback():
 
 
 import glob
-def get_history_imgs(line, num_frame=5):  # 如: /home/luodengyan/tmp/master-红外目标检测/视频/数据集/DUAB/images/test/data6/0.bmp
-    dir_path = line.replace(line.split('/')[-1], '')  # 如: /home/luodengyan/tmp/master-红外目标检测/视频/数据集/DUAB/images/test/data6/
+def get_history_imgs(line, num_frame=5): 
+    dir_path = line.replace(line.split('/')[-1], '')  
     file_type = line.split('.')[-1]  # bmp
     # file_type = 'png'  # bmp
     
-    index = int(line.split('/')[-1][:-4])  # 如0
+    index = int(line.split('/')[-1][:-4])  
 
     images_list = sorted(glob.glob(dir_path + f'/*.{file_type}'))
     nfs = len(images_list)
@@ -290,18 +287,3 @@ def get_history_imgs(line, num_frame=5):  # 如: /home/luodengyan/tmp/master-红
         images.append(dir_path + str(id) + '.' + file_type)
     return images
 
-
-if __name__ == "__main__":
-    with open('/home/luodengyan/tmp/master-红外目标检测/视频/数据集/DUAB/my_coco_val_DAUB.txt', encoding='utf-8') as f:
-        val_lines   = f.readlines()
-
-    for annotation_line in val_lines:
-        line        = annotation_line.split()
-        print(line)
-
-        images = get_history_imgs(line[0])
-        print(images)
-
-        gt_boxes    = np.array([np.array(list(map(int, box.split(',')))) for box in line[1:]])
-        print(gt_boxes)
-        exit(1)
