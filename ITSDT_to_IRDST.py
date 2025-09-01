@@ -163,8 +163,8 @@ if __name__ == "__main__":
     #   save_dir        权值与日志文件保存的文件夹
     #------------------------------------------------------------------#
     save_period = 1
-    file_name = source_train_annotation_path.split('.')[0].split('/')[-1].split('_')[-1] + \
-        '_' + 'to' + '_' + target_val_annotation_path.split('.')[0].split('/')[-1].split('_')[-1]
+    file_name = source_train_annotation_path.split('.')[-2].split('_')[-1] + \
+        '_' + 'to' + '_' + target_val_annotation_path.split('.')[-2].split('_')[-1]
 
     save_dir = 'logs' + '_' + file_name
 
