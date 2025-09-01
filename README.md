@@ -7,7 +7,7 @@ The PyTorch implementation for the KCARD: Knowledge Adaptation for Cross-Domain 
 ```bash
 conda create -n KCARD python=3.10.11
 conda activate KCARD
-conda install pytorch==1.12.0 torchvision==0.13.0 torchaudio==0.12.0 cudatoolkit=11.3 -c pytorch
+pip install torch==2.2.1 torchvision==0.17.1 torchaudio==2.2.1 --index-url https://download.pytorch.org/whl/cu121
 
 git clone --depth=1 https://github.com/xiaomingxige/KCARD
 cd KCARD
