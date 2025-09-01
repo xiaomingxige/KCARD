@@ -32,10 +32,10 @@ if __name__ == "__main__":
     CUDA_VISIBLE_DEVICES=1 nohup python -u  ITSDT_to_IRDST.py >  ITSDT_to_IRDST.out &
     """
     ################### source data
-    source_train_annotation_path = './my_coco_realtrain_ITSDT.txt'
+    source_train_annotation_path = './coco_realtrain_ITSDT.txt'
     ################### target data
     target_train_annotation_path = './1percent_train_IRDST.txt'
-    target_val_annotation_path = './my_coco_val_IRDST.txt'
+    target_val_annotation_path = './coco_val_IRDST.txt'
 
 
 
