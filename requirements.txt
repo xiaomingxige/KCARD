@@ -1,0 +1,11 @@
+opencv-python==4.7.0.72
+scipy==1.10.1
+matplotlib
+tensorboard
+tqdm
+numpy==1.24.3
+pillow==9.5.0
+thop
+pycocotools
+
+# pip install -r requirements.txt
