@@ -100,13 +100,12 @@ class target_seqDataset(Dataset):
     def get_data(self, index):
         image_data = []
         h, w = self.image_size, self.image_size
-        file_name = self.img_idx[index]  # 如/home/luodengyan/tmp/master-红外目标检测/视频/数据集/DUAB/images/train/data14/654.bmp
-        # print(file_name)
+        file_name = self.img_idx[index]  
 
-        label_data = self.anno_idx[index]  # 1
+        label_data = self.anno_idx[index]
 
-        image_id = int(file_name.split("/")[-1][:-4])  # 如654
-        image_path = file_name.replace(file_name.split("/")[-1], '')  # 如/home/luodengyan/tmp/master-红外目标检测/视频/数据集/DUAB/images/train/data14/
+        image_id = int(file_name.split("/")[-1][:-4])
+        image_path = file_name.replace(file_name.split("/")[-1], '') 
         
         idx_list = list(range(image_id - self.num_frame + 1, image_id + 1))
         images_list = sorted(glob.glob(image_path + f'/*{self.suffix}'))
@@ -120,18 +119,6 @@ class target_seqDataset(Dataset):
             
             img = cvtColor(img)
             iw, ih = img.size
-            
-            # scale = min(w/iw, h/ih)
-            # nw = int(iw*scale)
-            # nh = int(ih*scale)
-            # dx = (w-nw)//2
-            # dy = (h-nh)//2
-            
-            # img = img.resize((nw, nh), Image.Resampling.BICUBIC)  # 原图等比列缩放
-            # new_img = Image.new('RGB', (w, h), (128, 128, 128))  # 预期大小的灰色图
-            # new_img.paste(img, (dx, dy))  # 缩放图片放在正中
-            # image_data.append(np.array(new_img, np.float32))
-
 
             w_scale = w / iw
             h_scale = h / ih
@@ -139,11 +126,8 @@ class target_seqDataset(Dataset):
             image_data.append(np.array(new_img, np.float32))
 
         if len(label_data) > 0:
-            np.random.shuffle(label_data)  # label_data如：[[ 55 106  63 114   0]]
+            np.random.shuffle(label_data)  
 
-            # label_data[:, [0, 2]] = label_data[:, [0, 2]]*nw/iw + dx  # label_data[:, [0, 2]]: [[55 63]]
-            # label_data[:, [1, 3]] = label_data[:, [1, 3]]*nh/ih + dy
-            
             label_data[:, [0, 2]] = label_data[:, [0, 2]] * w_scale
             label_data[:, [1, 3]] = label_data[:, [1, 3]] * h_scale
 
@@ -156,10 +140,8 @@ class target_seqDataset(Dataset):
             box_h = label_data[:, 3] - label_data[:, 1]
             label_data = label_data[np.logical_and(box_w>1, box_h>1)] 
 
-        image_data = np.array(image_data) # (5, h, w, 3)
-        label_data = np.array(label_data, dtype=np.float32) # (1, 5)
-        # print(image_data.shape)
-        # exit(1)
+        image_data = np.array(image_data) 
+        label_data = np.array(label_data, dtype=np.float32) 
 
         if self.aug is True:
             pass
@@ -228,13 +210,12 @@ class source_seqDataset(Dataset):
     def get_data(self, index):
         image_data = []
         h, w = self.image_size, self.image_size
-        file_name = self.img_idx[index]  # 如/home/luodengyan/tmp/master-红外目标检测/视频/数据集/DUAB/images/train/data14/654.bmp
-        # print(file_name)
+        file_name = self.img_idx[index]  
 
-        label_data = np.copy(self.anno_idx[index])  # 1
+        label_data = np.copy(self.anno_idx[index]) 
 
-        image_id = int(file_name.split("/")[-1][:-4])  # 如654
-        image_path = file_name.replace(file_name.split("/")[-1], '')  # 如/home/luodengyan/tmp/master-红外目标检测/视频/数据集/DUAB/images/train/data14/
+        image_id = int(file_name.split("/")[-1][:-4])  
+        image_path = file_name.replace(file_name.split("/")[-1], '') 
         
         idx_list = list(range(image_id - self.num_frame + 1, image_id + 1))
         images_list = sorted(glob.glob(image_path + f'/*{self.suffix}'))
@@ -248,18 +229,6 @@ class source_seqDataset(Dataset):
             
             img = cvtColor(img)
             iw, ih = img.size
-            
-            # scale = min(w/iw, h/ih)
-            # nw = int(iw*scale)
-            # nh = int(ih*scale)
-            # dx = (w-nw)//2
-            # dy = (h-nh)//2
-            
-            # img = img.resize((nw, nh), Image.Resampling.BICUBIC)  # 原图等比列缩放
-            # new_img = Image.new('RGB', (w, h), (128, 128, 128))  # 预期大小的灰色图
-            # new_img.paste(img, (dx, dy))  # 缩放图片放在正中
-            # image_data.append(np.array(new_img, np.float32))
-
 
             w_scale = w / iw
             h_scale = h / ih
@@ -269,9 +238,6 @@ class source_seqDataset(Dataset):
         if len(label_data) > 0:
             np.random.shuffle(label_data)  # label_data如：[[ 55 106  63 114   0]]
 
-            # label_data[:, [0, 2]] = label_data[:, [0, 2]]*nw/iw + dx  # label_data[:, [0, 2]]: [[55 63]]
-            # label_data[:, [1, 3]] = label_data[:, [1, 3]]*nh/ih + dy
-            
             label_data[:, [0, 2]] = label_data[:, [0, 2]] * w_scale
             label_data[:, [1, 3]] = label_data[:, [1, 3]] * h_scale
 
@@ -284,10 +250,10 @@ class source_seqDataset(Dataset):
             box_h = label_data[:, 3] - label_data[:, 1]
             label_data = label_data[np.logical_and(box_w>1, box_h>1)] 
 
-        image_data = np.array(image_data) # (5, h, w, 3)
-        label_data = np.array(label_data, dtype=np.float32) # (1, 5)
+        image_data = np.array(image_data) 
+        label_data = np.array(label_data, dtype=np.float32) 
         # print(image_data.shape)
-        # exit(1)
+
 
         if self.aug is True:
             pass
@@ -311,8 +277,7 @@ class source_seqDataset(Dataset):
 def source_dataset_collate(batch):
     batch_max_num_label = 0
     for img, box, _ in batch:
-        # print(box.shape)  # 可能一个box为(2, 5), 一个为(1, 5), 因此需要处理。
-        if batch_max_num_label < box.shape[0]:  ######## 单个box为0维度，序列为1
+        if batch_max_num_label < box.shape[0]:  
             batch_max_num_label = box.shape[0]
     
     images = []
@@ -320,33 +285,24 @@ def source_dataset_collate(batch):
 
     raw_bboxes = []
     for img, box, raw_box in batch:
-        images.append(img)  #  3, t, h, w
+        images.append(img)  
 
-        ################### t, x, 5 --> t, batch_max_num_label, 5  
-        if box.shape[0] < batch_max_num_label:  ######## 单个box为0维度，序列为1
-            last_element = np.copy(box[-1:, :])  # 用最后一个元素扩充   ######## 单个为[:, -1:, :]，序列为[-1:, :]
-            new_arr = np.repeat(last_element, batch_max_num_label - box.shape[0], axis=0)  ######## 单个box为0维度，序列为1
+        ###################  
+        if box.shape[0] < batch_max_num_label:  
+            last_element = np.copy(box[-1:, :])  
+            new_arr = np.repeat(last_element, batch_max_num_label - box.shape[0], axis=0) 
             box = np.concatenate((box, new_arr), axis=0)
 
 
-            last_element = np.copy(raw_box[-1:, :])  # 用最后一个元素扩充   ######## 单个为[:, -1:, :]，序列为[-1:, :]
-            new_arr = np.repeat(last_element, batch_max_num_label - raw_box.shape[0], axis=0)  ######## 单个box为0维度，序列为1
+            last_element = np.copy(raw_box[-1:, :])  
+            new_arr = np.repeat(last_element, batch_max_num_label - raw_box.shape[0], axis=0)  
             raw_box = np.concatenate((raw_box, new_arr), axis=0)
         bboxes.append(box)  
         raw_bboxes.append(raw_box)  
 
-    images = torch.from_numpy(np.array(images)).type(torch.FloatTensor)  # b, 3, t, h, w
-    bboxes = torch.from_numpy(np.array(bboxes)).type(torch.FloatTensor)  # b, t, ...
-    raw_bboxes = torch.from_numpy(np.array(raw_bboxes)).type(torch.FloatTensor)  # b, t, ...
+    images = torch.from_numpy(np.array(images)).type(torch.FloatTensor) 
+    bboxes = torch.from_numpy(np.array(bboxes)).type(torch.FloatTensor)  
+    raw_bboxes = torch.from_numpy(np.array(raw_bboxes)).type(torch.FloatTensor)  
     return images, bboxes, raw_bboxes
 
 
-    
-if __name__ == "__main__":
-    train_dataset = seqDataset("/home/coco_train.txt", 256, 5, 'train')
-    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=2, collate_fn=dataset_collate)
-    t = time.time()
-    for index, batch in enumerate(train_dataloader):
-        images, targets = batch[0], batch[1]
-        print(index)
-    print(time.time()-t)
