@@ -1,0 +1,307 @@
+from email.mime import image
+import os
+
+import torch
+import matplotlib
+matplotlib.use('Agg')
+import scipy.signal
+from matplotlib import pyplot as plt
+from torch.utils.tensorboard import SummaryWriter
+
+import shutil
+import numpy as np
+
+from PIL import Image
+from tqdm import tqdm
+
+
+
+from .utils import cvtColor, preprocess_input, resize_image
+from .utils_bbox import decode_outputs, non_max_suppression
+from .utils_map import get_coco_map, get_map
+# from utils import cvtColor, preprocess_input, resize_image
+# from utils_bbox import decode_outputs, non_max_suppression
+# from utils_map import get_coco_map, get_map
+
+
+from .dataloader_for_DAUB import source_seqDataset, source_dataset_collate
+from torch.utils.data import DataLoader
+
+
+class LossHistory():
+    def __init__(self, log_dir, model, input_shape):
+        self.log_dir    = log_dir
+        self.losses     = []
+        self.val_loss   = []
+
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)        
+        self.writer     = SummaryWriter(self.log_dir)
+        try:
+            dummy_input     = torch.randn(2, 3, input_shape[0], input_shape[1])
+            self.writer.add_graph(model, dummy_input)
+        except:
+            pass
+
+    def append_loss(self, epoch, loss, val_loss):
+        self.losses.append(loss)
+        self.val_loss.append(val_loss)
+
+        with open(os.path.join(self.log_dir, "epoch_train_loss.txt"), 'a') as f:
+            f.write(str(loss))
+            f.write("\n")
+        with open(os.path.join(self.log_dir, "epoch_val_loss.txt"), 'a') as f:
+            f.write(str(val_loss))
+            f.write("\n")
+
+        self.writer.add_scalar('train_loss', loss, epoch)
+        self.writer.add_scalar('val_loss', val_loss, epoch)
+        self.loss_plot()
+
+    def loss_plot(self):
+        iters = range(len(self.losses))
+
+        plt.figure()
+        plt.plot(iters, self.losses, 'red', linewidth = 2, label='train loss')
+        plt.plot(iters, self.val_loss, 'coral', linewidth = 2, label='val loss')
+        try:
+            if len(self.losses) < 25:
+                num = 5
+            else:
+                num = 15
+            
+            plt.plot(iters, scipy.signal.savgol_filter(self.losses, num, 3), 'green', linestyle = '--', linewidth = 2, label='smooth train loss')
+            plt.plot(iters, scipy.signal.savgol_filter(self.val_loss, num, 3), '#8B4513', linestyle = '--', linewidth = 2, label='smooth val loss')
+        except:
+            pass
+
+        plt.grid(True)
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend(loc="upper right")
+
+        plt.savefig(os.path.join(self.log_dir, "epoch_loss.png"))
+
+        plt.cla()
+        plt.close("all")
+
+
+class EvalCallback():
+    def __init__(self, net, input_shape, class_names, num_classes, val_lines, log_dir, cuda, map_out_path=".temp_map_out", 
+                 max_boxes=100, confidence=0.05, nms_iou=0.5, 
+                 letterbox_image=False, 
+                 MINOVERLAP=0.5, eval_flag=True, period=5,
+                 source_train_annotation_path=None, val_source_train_dataset_length=None
+                 ):
+        super(EvalCallback, self).__init__()
+        self.net                = net
+        self.input_shape        = input_shape
+        self.class_names        = class_names
+        self.num_classes        = num_classes
+        self.val_lines          = val_lines
+
+        self.log_dir            = log_dir
+        self.cuda               = cuda
+        self.map_out_path       = map_out_path
+        self.max_boxes          = max_boxes
+        self.confidence         = confidence
+        self.nms_iou            = nms_iou
+        self.letterbox_image    = letterbox_image
+        self.MINOVERLAP         = MINOVERLAP
+        self.eval_flag          = eval_flag
+        self.period             = period
+        
+        self.maps       = [0]
+        self.epoches    = [0]
+        if self.eval_flag:
+            with open(os.path.join(self.log_dir, "epoch_map.txt"), 'a') as f:
+                f.write(str(0))
+                f.write("\n")
+
+        self.source_train_annotation_path = source_train_annotation_path
+        self.val_source_train_dataset_length = val_source_train_dataset_length
+
+
+    def get_map_txt(self, image_id, images, class_names, map_out_path,
+                    source_images, source_box):
+        f = open(os.path.join(map_out_path, "detection-results/"+image_id+".txt"),"w") 
+        image_shape = np.array(np.shape(images[0])[0:2])
+
+        #---------------------------------------------------------#
+        #   在这里将图像转换成RGB图像，防止灰度图在预测时报错。
+        #   代码仅仅支持RGB图像的预测，所有其它类型的图像都会转化成RGB
+        #---------------------------------------------------------#
+        images       = [cvtColor(image) for image in images]
+
+        #---------------------------------------------------------#
+        #   给图像增加灰条，实现不失真的resize
+        #   也可以直接resize进行识别
+        #---------------------------------------------------------#
+        image_data  = [resize_image(image, (self.input_shape[1], self.input_shape[0]), self.letterbox_image) for image in images]
+
+        image_data = [np.transpose(preprocess_input(   np.array(image, dtype='float32')  ), (2, 0, 1)) for image in image_data]  # h, w, c --> c, h, w
+        image_data = np.stack(image_data, axis=1)  # c, t, h, w
+        image_data  = np.expand_dims(image_data, 0)  # b, c, t, h, w
+ 
+        with torch.no_grad():
+            images = torch.from_numpy(image_data)
+            if self.cuda:
+                images = images.cuda()
+
+                source_images = source_images.cuda()
+                source_box = source_box.cuda()
+            #---------------------------------------------------------#
+            #   将图像输入网络当中进行预测！
+            #---------------------------------------------------------#
+            outputs = self.net(source_images[:, :, -1, :, :], source_box, images) 
+            outputs = decode_outputs(outputs, self.input_shape)
+            #---------------------------------------------------------#
+            #   将预测框进行堆叠，然后进行非极大抑制
+            #---------------------------------------------------------#
+            results = non_max_suppression(outputs, self.num_classes, self.input_shape, image_shape, self.letterbox_image, 
+                                          conf_thres=self.confidence, nms_thres=self.nms_iou)
+            if results[0] is None: 
+                return 
+            top_label   = np.array(results[0][:, 6], dtype = 'int32')
+            top_conf    = results[0][:, 4] * results[0][:, 5]
+            top_boxes   = results[0][:, :4]
+        top_100     = np.argsort(top_label)[::-1][:self.max_boxes]
+        top_boxes   = top_boxes[top_100]
+        top_conf    = top_conf[top_100]
+        top_label   = top_label[top_100]
+        for i, c in list(enumerate(top_label)):
+            predicted_class = self.class_names[int(c)]
+            box             = top_boxes[i]
+            score           = str(top_conf[i])
+
+            top, left, bottom, right = box
+            if predicted_class not in class_names:
+                continue
+            f.write("%s %s %s %s %s %s\n" % (predicted_class, score[:6], str(int(left)), str(int(top)), str(int(right)), str(int(bottom))))
+        f.close()
+        return 
+    
+    def on_epoch_end(self, epoch, model_eval):
+        source_train_dataset = source_seqDataset(self.source_train_annotation_path, self.input_shape[0], 5, 'train', 
+                                                 length=self.val_source_train_dataset_length)
+        shuffle = True
+
+        source_DataLoader             = iter(DataLoader(source_train_dataset, shuffle = shuffle, batch_size =1, num_workers = 1, pin_memory=True,
+                                    drop_last=True, collate_fn=source_dataset_collate, sampler=None))
+        
+
+        if epoch % self.period == 0 and self.eval_flag:
+            self.net = model_eval
+            if not os.path.exists(self.map_out_path):
+                os.makedirs(self.map_out_path)
+            if not os.path.exists(os.path.join(self.map_out_path, "ground-truth")):
+                os.makedirs(os.path.join(self.map_out_path, "ground-truth"))
+            if not os.path.exists(os.path.join(self.map_out_path, "detection-results")):
+                os.makedirs(os.path.join(self.map_out_path, "detection-results"))
+            print("Get map.")
+
+            for annotation_line in tqdm(self.val_lines):
+                souce_batch = next(source_DataLoader)
+                source_images, _, source_box = souce_batch[0], souce_batch[1], souce_batch[2]
+
+                
+                line        = annotation_line.split()
+                '''
+                    # 不同视频的图片序号会重复， 视频号-图片序号作为id 
+                '''
+                image_id    = line[0].split('/')[-2] + '-' + line[0].split('/')[-1][:-4] # 如data6-0
+  
+                #------------------------------#
+                #   读取图像
+                #------------------------------#
+                images = get_history_imgs(line[0])
+                images = [Image.open(item) for item in images]
+
+                #------------------------------#
+                #   获得真实框
+                #------------------------------#
+                gt_boxes    = np.array([np.array(list(map(int, box.split(',')))) for box in line[1:]])
+
+                #------------------------------#
+                #   获得预测txt
+                #------------------------------#
+                self.get_map_txt(image_id, images, self.class_names, self.map_out_path, 
+                                 source_images, source_box)
+                
+                #------------------------------#
+                #   获得真实框txt
+                #------------------------------#
+                with open(os.path.join(self.map_out_path, "ground-truth/" + image_id+".txt"), "w") as new_f:
+                    for box in gt_boxes:
+                        left, top, right, bottom, obj = box
+                        obj_name = self.class_names[obj]
+                        new_f.write("%s %s %s %s %s\n" % (obj_name, left, top, right, bottom))
+
+            print("Calculate Map.")
+            try:
+                temp_map = get_coco_map(class_names=self.class_names, path=self.map_out_path)[1]
+            except:
+                temp_map = get_map(self.MINOVERLAP, False, path = self.map_out_path)
+            self.maps.append(temp_map)
+            self.epoches.append(epoch)
+
+            with open(os.path.join(self.log_dir, "epoch_map.txt"), 'a') as f:
+                f.write(str(temp_map))
+                f.write("\n")
+            
+            plt.figure()
+            plt.plot(self.epoches, self.maps, 'red', linewidth=2, label='train map')
+
+            plt.grid(True)
+            plt.xlabel('Epoch')
+            plt.ylabel('Map %s'%str(self.MINOVERLAP))
+            plt.title('A Map Curve')
+            plt.legend(loc="upper right")
+
+            plt.savefig(os.path.join(self.log_dir, "epoch_map.png"))
+            plt.cla()
+            plt.close("all")
+
+            print("Get map done.")
+            # shutil.rmtree(self.map_out_path)
+            print()
+            print('yes')
+
+
+
+import glob
+def get_history_imgs(line, num_frame=5):  # 如: /home/luodengyan/tmp/master-红外目标检测/视频/数据集/DUAB/images/test/data6/0.bmp
+    dir_path = line.replace(line.split('/')[-1], '')  # 如: /home/luodengyan/tmp/master-红外目标检测/视频/数据集/DUAB/images/test/data6/
+    file_type = line.split('.')[-1]  # bmp
+    # file_type = 'png'  # bmp
+    
+    index = int(line.split('/')[-1][:-4])  # 如0
+
+    images_list = sorted(glob.glob(dir_path + f'/*.{file_type}'))
+    nfs = len(images_list)
+
+    idx_list =  list(range(index - num_frame + 1, index + 1))
+    # print(idx_list)
+    idx_list = np.clip(idx_list, 0, nfs-1)
+    
+    images = []
+    for id in idx_list:
+        # print(dir_path + str(id) + '.' + file_type)
+        images.append(dir_path + str(id) + '.' + file_type)
+    return images
+
+
+if __name__ == "__main__":
+    with open('/home/luodengyan/tmp/master-红外目标检测/视频/数据集/DUAB/my_coco_val_DAUB.txt', encoding='utf-8') as f:
+        val_lines   = f.readlines()
+
+    for annotation_line in val_lines:
+        line        = annotation_line.split()
+        print(line)
+
+        images = get_history_imgs(line[0])
+        print(images)
+
+        gt_boxes    = np.array([np.array(list(map(int, box.split(',')))) for box in line[1:]])
+        print(gt_boxes)
+        exit(1)
